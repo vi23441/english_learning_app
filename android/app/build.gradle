@@ -7,16 +7,16 @@ plugins {
 
 android {
     namespace = "com.edulearn_mobile.app"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 35  // Updated to 35 for better plugin compatibility
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
+        jvmTarget = '17'
     }
 
     defaultConfig {
@@ -24,8 +24,8 @@ android {
         applicationId = "com.edulearn_mobile.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 23  // Changed from flutter.minSdkVersion to 23 for Firebase compatibility
+        targetSdk = 35  // Updated to 35 for better plugin compatibility
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled true
@@ -47,3 +47,5 @@ flutter {
 dependencies {
     implementation "androidx.multidex:multidex:2.0.1"
 }
+
+apply plugin: 'com.google.gms.google-services'

@@ -17,7 +17,7 @@ class TestProgressWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progress = completedQuestions / totalQuestions;
+    final progress = totalQuestions > 0 ? completedQuestions / totalQuestions : 0.0;
 
     return Column(
       children: [

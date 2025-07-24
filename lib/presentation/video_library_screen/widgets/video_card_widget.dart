@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
+import '../../../models/video.dart';
 
 class VideoCardWidget extends StatelessWidget {
-  final Map<String, dynamic> video;
+  final Video video;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
 
@@ -21,6 +22,7 @@ class VideoCardWidget extends StatelessWidget {
       onTap: onTap,
       onLongPress: onLongPress,
       child: Container(
+        height: 35.h, // Fixed height for consistent card sizing
         decoration: BoxDecoration(
           color: AppTheme.lightTheme.colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
@@ -30,17 +32,18 @@ class VideoCardWidget extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Video thumbnail with play overlay
-            Expanded(
-              flex: 3,
+            Container(
+              height: 20.h, // Fixed height for thumbnail
+              width: double.infinity,
               child: Stack(
                 children: [
                   ClipRRect(
                     borderRadius:
                         const BorderRadius.vertical(top: Radius.circular(12)),
                     child: CustomImageWidget(
-                      imageUrl: video['thumbnail'] as String,
+                      imageUrl: video.thumbnailUrl,
                       width: double.infinity,
-                      height: double.infinity,
+                      height: 20.h,
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -81,7 +84,7 @@ class VideoCardWidget extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        video['duration'] as String,
+                        _formatDuration(video.duration),
                         style:
                             AppTheme.lightTheme.textTheme.labelSmall?.copyWith(
                           color: Colors.white,
@@ -96,6 +99,9 @@ class VideoCardWidget extends StatelessWidget {
                     left: 2.w,
                     child: Row(
                       children: [
+                        // Note: These properties don't exist in Video model, so commenting out for now
+                        // TODO: Add these fields to Video model if needed
+                        /*
                         if (video['isCompleted'] == true)
                           Container(
                             padding: EdgeInsets.all(1.w),
@@ -140,6 +146,7 @@ class VideoCardWidget extends StatelessWidget {
                             ),
                           ),
                         ],
+                        */
                       ],
                     ),
                   ),
@@ -147,83 +154,107 @@ class VideoCardWidget extends StatelessWidget {
               ),
             ),
             // Video details
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: EdgeInsets.all(3.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Title
-                    Text(
-                      video['title'] as String,
-                      style: AppTheme.lightTheme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+            Container(
+              height: 13.h, // Fixed height for content section
+              padding: EdgeInsets.all(3.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title
+                  Text(
+                    video.title,
+                    style: AppTheme.lightTheme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
                     ),
-                    SizedBox(height: 1.h),
-                    // Instructor and views
-                    Text(
-                      '${video['instructor']} • ${video['views']} views',
-                      style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                        color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 0.5.h),
+                  // Description
+                  Text(
+                    video.description,
+                    style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                      color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                      fontSize: 10.sp,
                     ),
-                    const Spacer(),
-                    // Difficulty and rating
-                    Row(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 2.w, vertical: 0.5.h),
-                          decoration: BoxDecoration(
-                            color: _getDifficultyColor(
-                                    video['difficulty'] as String)
-                                .withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(4),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const Spacer(),
+                  // Bottom row with instructor, views and rating
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${video.uploadedBy} • ${video.viewCount} views',
+                          style:
+                              AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                            color:
+                                AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                            fontSize: 9.sp,
                           ),
-                          child: Text(
-                            video['difficulty'] as String,
-                            style: AppTheme.lightTheme.textTheme.labelSmall
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      // Rating
+                      Row(
+                        children: [
+                          CustomIconWidget(
+                            iconName: 'star',
+                            color: Colors.amber,
+                            size: 12.sp,
+                          ),
+                          SizedBox(width: 0.5.w),
+                          Text(
+                            video.averageRating.toStringAsFixed(1),
+                            style: AppTheme.lightTheme.textTheme.bodySmall
                                 ?.copyWith(
-                              color: _getDifficultyColor(
-                                  video['difficulty'] as String),
                               fontWeight: FontWeight.w500,
+                              fontSize: 9.sp,
                             ),
                           ),
-                        ),
-                        const Spacer(),
-                        Row(
-                          children: [
-                            CustomIconWidget(
-                              iconName: 'star',
-                              color: Colors.amber,
-                              size: 14,
-                            ),
-                            SizedBox(width: 1.w),
-                            Text(
-                              video['rating'].toString(),
-                              style: AppTheme.lightTheme.textTheme.labelSmall
-                                  ?.copyWith(
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                        ],
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 0.5.h),
+                  // Difficulty badge
+                  Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 2.w, vertical: 0.3.h),
+                    decoration: BoxDecoration(
+                      color: _getDifficultyColor(video.level)
+                          .withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _getDifficultyColor(video.level)
+                            .withValues(alpha: 0.3),
+                        width: 0.5,
+                      ),
                     ),
-                  ],
-                ),
+                    child: Text(
+                      video.level,
+                      style: AppTheme.lightTheme.textTheme.labelSmall?.copyWith(
+                        color: _getDifficultyColor(video.level),
+                        fontWeight: FontWeight.w500,
+                        fontSize: 8.sp,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  String _formatDuration(int durationInSeconds) {
+    final minutes = durationInSeconds ~/ 60;
+    final seconds = durationInSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
   Color _getDifficultyColor(String difficulty) {

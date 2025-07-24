@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/app_export.dart';
+import '../../providers/auth_provider.dart';
+import '../../models/user.dart';
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({Key? key}) : super(key: key);
@@ -183,16 +186,26 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       _isLoading = true;
     });
 
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
     try {
-      // Simulate account creation
-      await Future.delayed(const Duration(seconds: 2));
+      // Create user data
+      final userData = UserModel(
+        id: '', // Will be assigned by Firebase
+        email: _emailController.text.trim(),
+        name: _fullNameController.text.trim(),
+        role: UserRole.student, // Default role
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
 
-      // Check for duplicate email (mock validation)
-      if (_emailController.text.trim().toLowerCase() == 'test@example.com') {
-        throw Exception('An account with this email already exists');
-      }
+      // Register with AuthProvider
+      await authProvider.register(
+        userData.name,
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
 
-      // Success - show confirmation and navigate
       if (mounted) {
         _showSuccessMessage();
         await Future.delayed(const Duration(seconds: 1));

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/app_export.dart';
+import '../../providers/video_provider.dart';
 import './widgets/filter_bottom_sheet_widget.dart';
 import './widgets/filter_chip_widget.dart';
 import './widgets/video_card_widget.dart';
@@ -23,147 +25,8 @@ class _VideoLibraryScreenState extends State<VideoLibraryScreen>
   List<String> _activeFilters = ['All Videos'];
   String _searchQuery = '';
 
-  // Mock video data
-  final List<Map<String, dynamic>> _allVideos = [
-    {
-      "id": 1,
-      "title": "Introduction to English Grammar",
-      "thumbnail":
-          "https://images.pexels.com/photos/4144923/pexels-photo-4144923.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-      "duration": "15:30",
-      "difficulty": "Beginner",
-      "category": "Grammar",
-      "isCompleted": true,
-      "isFavorite": false,
-      "isDownloaded": false,
-      "instructor": "Sarah Johnson",
-      "views": "12.5K",
-      "rating": 4.8,
-      "description":
-          "Learn the fundamentals of English grammar with practical examples and exercises.",
-    },
-    {
-      "id": 2,
-      "title": "Advanced Vocabulary Building",
-      "thumbnail":
-          "https://images.pixabay.com/photo/2016/03/26/13/09/workspace-1280538_1280.jpg",
-      "duration": "22:45",
-      "difficulty": "Advanced",
-      "category": "Vocabulary",
-      "isCompleted": false,
-      "isFavorite": true,
-      "isDownloaded": true,
-      "instructor": "Michael Chen",
-      "views": "8.2K",
-      "rating": 4.9,
-      "description":
-          "Expand your vocabulary with advanced words and phrases for professional communication.",
-    },
-    {
-      "id": 3,
-      "title": "Pronunciation Mastery",
-      "thumbnail":
-          "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-      "duration": "18:20",
-      "difficulty": "Intermediate",
-      "category": "Speaking",
-      "isCompleted": false,
-      "isFavorite": false,
-      "isDownloaded": false,
-      "instructor": "Emma Wilson",
-      "views": "15.7K",
-      "rating": 4.7,
-      "description":
-          "Perfect your English pronunciation with phonetic exercises and speaking practice.",
-    },
-    {
-      "id": 4,
-      "title": "Business English Essentials",
-      "thumbnail":
-          "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-      "duration": "25:10",
-      "difficulty": "Intermediate",
-      "category": "Business",
-      "isCompleted": true,
-      "isFavorite": true,
-      "isDownloaded": false,
-      "instructor": "David Rodriguez",
-      "views": "9.8K",
-      "rating": 4.6,
-      "description":
-          "Master professional English communication for workplace success.",
-    },
-    {
-      "id": 5,
-      "title": "Reading Comprehension Skills",
-      "thumbnail":
-          "https://images.pixabay.com/photo/2015/09/05/07/28/writing-923882_1280.jpg",
-      "duration": "20:15",
-      "difficulty": "Beginner",
-      "category": "Reading",
-      "isCompleted": false,
-      "isFavorite": false,
-      "isDownloaded": true,
-      "instructor": "Lisa Thompson",
-      "views": "11.3K",
-      "rating": 4.5,
-      "description":
-          "Improve your reading skills with comprehension strategies and practice exercises.",
-    },
-    {
-      "id": 6,
-      "title": "Writing Techniques & Style",
-      "thumbnail":
-          "https://images.unsplash.com/photo-1455390582262-044cdead277a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1073&q=80",
-      "duration": "28:30",
-      "difficulty": "Advanced",
-      "category": "Writing",
-      "isCompleted": false,
-      "isFavorite": false,
-      "isDownloaded": false,
-      "instructor": "Robert Kim",
-      "views": "7.1K",
-      "rating": 4.8,
-      "description":
-          "Develop advanced writing skills with professional techniques and style guides.",
-    },
-    {
-      "id": 7,
-      "title": "Listening Skills Development",
-      "thumbnail":
-          "https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-      "duration": "16:45",
-      "difficulty": "Intermediate",
-      "category": "Listening",
-      "isCompleted": true,
-      "isFavorite": false,
-      "isDownloaded": false,
-      "instructor": "Anna Martinez",
-      "views": "13.2K",
-      "rating": 4.7,
-      "description":
-          "Enhance your listening comprehension with audio exercises and practice sessions.",
-    },
-    {
-      "id": 8,
-      "title": "IELTS Preparation Course",
-      "thumbnail":
-          "https://images.pixabay.com/photo/2017/05/12/08/29/coffee-2306471_1280.jpg",
-      "duration": "35:20",
-      "difficulty": "Advanced",
-      "category": "Test Prep",
-      "isCompleted": false,
-      "isFavorite": true,
-      "isDownloaded": true,
-      "instructor": "James Parker",
-      "views": "18.9K",
-      "rating": 4.9,
-      "description":
-          "Comprehensive IELTS preparation with practice tests and expert strategies.",
-    },
-  ];
-
-  List<Map<String, dynamic>> _filteredVideos = [];
+  List<dynamic> _allVideos = [];
+  List<dynamic> _filteredVideos = [];
 
   final List<String> _categories = [
     'All Videos',
@@ -180,8 +43,18 @@ class _VideoLibraryScreenState extends State<VideoLibraryScreen>
   @override
   void initState() {
     super.initState();
-    _filteredVideos = List.from(_allVideos);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadVideosFromProvider();
+    });
     _scrollController.addListener(_onScroll);
+  }
+
+  void _loadVideosFromProvider() {
+    final videoProvider = Provider.of<VideoProvider>(context, listen: false);
+    setState(() {
+      _allVideos = videoProvider.videos;
+      _filteredVideos = List.from(_allVideos);
+    });
   }
 
   @override
@@ -218,19 +91,18 @@ class _VideoLibraryScreenState extends State<VideoLibraryScreen>
   void _filterVideos() {
     setState(() {
       _filteredVideos = _allVideos.where((video) {
+        // Handle both Map and object formats
+        final title = video is Map ? (video['title'] ?? '') : (video.title ?? '');
+        final category = video is Map ? (video['category'] ?? '') : (video.category ?? '');
+        final instructor = video is Map ? (video['instructor'] ?? '') : (video.instructor ?? '');
+        
         bool matchesSearch = _searchQuery.isEmpty ||
-            (video['title'] as String)
-                .toLowerCase()
-                .contains(_searchQuery.toLowerCase()) ||
-            (video['category'] as String)
-                .toLowerCase()
-                .contains(_searchQuery.toLowerCase()) ||
-            (video['instructor'] as String)
-                .toLowerCase()
-                .contains(_searchQuery.toLowerCase());
+            title.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
+            category.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
+            instructor.toString().toLowerCase().contains(_searchQuery.toLowerCase());
 
         bool matchesFilter = _activeFilters.contains('All Videos') ||
-            _activeFilters.contains(video['category'] as String);
+            _activeFilters.contains(category.toString());
 
         return matchesSearch && matchesFilter;
       }).toList();
@@ -282,21 +154,34 @@ class _VideoLibraryScreenState extends State<VideoLibraryScreen>
   }
 
   Future<void> _onRefresh() async {
-    await Future.delayed(const Duration(seconds: 1));
+    final videoProvider = Provider.of<VideoProvider>(context, listen: false);
+    await videoProvider.loadVideos();
     setState(() {
+      _allVideos = videoProvider.videos;
       _filteredVideos = List.from(_allVideos);
     });
   }
 
-  void _onVideoTap(Map<String, dynamic> video) {
+  void _onVideoTap(dynamic video) {
+    String videoId;
+    if (video is Map) {
+      videoId = video['id'] ?? '';
+    } else {
+      videoId = video.id;
+    }
+    
     Navigator.pushNamed(
       context,
       '/video-player-screen',
-      arguments: video,
+      arguments: videoId,
     );
   }
 
-  void _onVideoLongPress(Map<String, dynamic> video) {
+  void _onVideoLongPress(dynamic video) {
+    final title = video is Map ? (video['title'] ?? '') : (video.title ?? '');
+    final isFavorite = video is Map ? (video['isFavorite'] ?? false) : (video.isFavorite ?? false);
+    final isDownloaded = video is Map ? (video['isDownloaded'] ?? false) : (video.isDownloaded ?? false);
+    
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -319,7 +204,7 @@ class _VideoLibraryScreenState extends State<VideoLibraryScreen>
             ),
             SizedBox(height: 2.h),
             Text(
-              video['title'] as String,
+              title.toString(),
               style: AppTheme.lightTheme.textTheme.titleMedium,
               textAlign: TextAlign.center,
               maxLines: 2,
@@ -328,7 +213,7 @@ class _VideoLibraryScreenState extends State<VideoLibraryScreen>
             SizedBox(height: 2.h),
             _buildQuickActionTile(
               icon: 'favorite',
-              title: video['isFavorite'] == true
+              title: isFavorite == true
                   ? 'Remove from Favorites'
                   : 'Add to Favorites',
               onTap: () {
@@ -338,7 +223,7 @@ class _VideoLibraryScreenState extends State<VideoLibraryScreen>
             ),
             _buildQuickActionTile(
               icon: 'download',
-              title: video['isDownloaded'] == true
+              title: isDownloaded == true
                   ? 'Remove Download'
                   : 'Download for Offline',
               onTap: () {
@@ -385,209 +270,248 @@ class _VideoLibraryScreenState extends State<VideoLibraryScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.lightTheme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: AppTheme.lightTheme.appBarTheme.backgroundColor,
-        elevation: 0,
-        title: _isSearching
-            ? TextField(
-                controller: _searchController,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: 'Search videos...',
-                  border: InputBorder.none,
-                  hintStyle: AppTheme.lightTheme.textTheme.bodyLarge?.copyWith(
-                    color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                style: AppTheme.lightTheme.textTheme.bodyLarge,
-                onChanged: _onSearchChanged,
-              )
-            : Text(
+    return Consumer<VideoProvider>(
+      builder: (context, videoProvider, child) {
+        if (videoProvider.isLoading && _allVideos.isEmpty) {
+          return Scaffold(
+            backgroundColor: AppTheme.lightTheme.scaffoldBackgroundColor,
+            appBar: AppBar(
+              backgroundColor: AppTheme.lightTheme.appBarTheme.backgroundColor,
+              elevation: 0,
+              title: Text(
                 'Video Library',
                 style: AppTheme.lightTheme.appBarTheme.titleTextStyle,
               ),
-        actions: [
-          IconButton(
-            onPressed: () {
-              setState(() {
-                _isSearching = !_isSearching;
-                if (!_isSearching) {
-                  _searchController.clear();
-                  _searchQuery = '';
-                  _filterVideos();
-                }
-              });
-            },
-            icon: CustomIconWidget(
-              iconName: _isSearching ? 'close' : 'search',
-              color: AppTheme.lightTheme.colorScheme.onSurface,
-              size: 24,
             ),
-          ),
-          IconButton(
-            onPressed: _showFilterBottomSheet,
-            icon: CustomIconWidget(
-              iconName: 'filter_list',
-              color: AppTheme.lightTheme.colorScheme.onSurface,
-              size: 24,
+            body: Center(
+              child: CircularProgressIndicator(
+                color: AppTheme.lightTheme.colorScheme.primary,
+              ),
             ),
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Filter chips
-            if (_activeFilters.isNotEmpty &&
-                !_activeFilters.contains('All Videos'))
-              Container(
-                height: 6.h,
-                padding: EdgeInsets.symmetric(horizontal: 4.w),
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _activeFilters.length,
-                  itemBuilder: (context, index) {
-                    final filter = _activeFilters[index];
-                    if (filter == 'All Videos') return const SizedBox.shrink();
+          );
+        }
 
-                    return Padding(
-                      padding: EdgeInsets.only(right: 2.w),
-                      child: FilterChipWidget(
-                        label: filter,
-                        isSelected: true,
-                        count: _allVideos
-                            .where((video) => video['category'] == filter)
-                            .length,
-                        onTap: () => _toggleFilter(filter),
+        // Update videos if provider has new data
+        if (videoProvider.videos.isNotEmpty && _allVideos != videoProvider.videos) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            setState(() {
+              _allVideos = videoProvider.videos;
+              _filteredVideos = List.from(_allVideos);
+            });
+          });
+        }
+
+        return Scaffold(
+          backgroundColor: AppTheme.lightTheme.scaffoldBackgroundColor,
+          appBar: AppBar(
+            backgroundColor: AppTheme.lightTheme.appBarTheme.backgroundColor,
+            elevation: 0,
+            title: _isSearching
+                ? TextField(
+                    controller: _searchController,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: 'Search videos...',
+                      border: InputBorder.none,
+                      hintStyle: AppTheme.lightTheme.textTheme.bodyLarge?.copyWith(
+                        color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
                       ),
-                    );
-                  },
+                    ),
+                    style: AppTheme.lightTheme.textTheme.bodyLarge,
+                    onChanged: _onSearchChanged,
+                  )
+                : Text(
+                    'Video Library',
+                    style: AppTheme.lightTheme.appBarTheme.titleTextStyle,
+                  ),
+            actions: [
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    _isSearching = !_isSearching;
+                    if (!_isSearching) {
+                      _searchController.clear();
+                      _searchQuery = '';
+                      _filterVideos();
+                    }
+                  });
+                },
+                icon: CustomIconWidget(
+                  iconName: _isSearching ? 'close' : 'search',
+                  color: AppTheme.lightTheme.colorScheme.onSurface,
+                  size: 24,
                 ),
               ),
-
-            // Video grid
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: _onRefresh,
-                color: AppTheme.lightTheme.colorScheme.primary,
-                child: _filteredVideos.isEmpty
-                    ? _buildEmptyState()
-                    : GridView.builder(
-                        controller: _scrollController,
-                        padding: EdgeInsets.all(4.w),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: MediaQuery.of(context).orientation ==
-                                  Orientation.portrait
-                              ? 2
-                              : 1,
-                          childAspectRatio: 0.75,
-                          crossAxisSpacing: 3.w,
-                          mainAxisSpacing: 3.w,
-                        ),
-                        itemCount:
-                            _filteredVideos.length + (_isLoading ? 2 : 0),
-                        itemBuilder: (context, index) {
-                          if (index >= _filteredVideos.length) {
-                            return _buildSkeletonCard();
-                          }
-
-                          final video = _filteredVideos[index];
-                          return VideoCardWidget(
-                            video: video,
-                            onTap: () => _onVideoTap(video),
-                            onLongPress: () => _onVideoLongPress(video),
-                          );
-                        },
-                      ),
+              IconButton(
+                onPressed: _showFilterBottomSheet,
+                icon: CustomIconWidget(
+                  iconName: 'filter_list',
+                  color: AppTheme.lightTheme.colorScheme.onSurface,
+                  size: 24,
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: 1, // Videos tab active
-        backgroundColor:
-            AppTheme.lightTheme.bottomNavigationBarTheme.backgroundColor,
-        selectedItemColor:
-            AppTheme.lightTheme.bottomNavigationBarTheme.selectedItemColor,
-        unselectedItemColor:
-            AppTheme.lightTheme.bottomNavigationBarTheme.unselectedItemColor,
-        items: [
-          BottomNavigationBarItem(
-            icon: CustomIconWidget(
-              iconName: 'home',
-              color: AppTheme
-                  .lightTheme.bottomNavigationBarTheme.unselectedItemColor!,
-              size: 24,
-            ),
-            activeIcon: CustomIconWidget(
-              iconName: 'home',
-              color: AppTheme
-                  .lightTheme.bottomNavigationBarTheme.selectedItemColor!,
-              size: 24,
-            ),
-            label: 'Home',
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: CustomIconWidget(
-              iconName: 'play_circle_filled',
-              color: AppTheme
-                  .lightTheme.bottomNavigationBarTheme.selectedItemColor!,
-              size: 24,
+          body: SafeArea(
+            child: Column(
+              children: [
+                // Filter chips
+                if (_activeFilters.isNotEmpty &&
+                    !_activeFilters.contains('All Videos'))
+                  Container(
+                    height: 6.h,
+                    padding: EdgeInsets.symmetric(horizontal: 4.w),
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _activeFilters.length,
+                      itemBuilder: (context, index) {
+                        final filter = _activeFilters[index];
+                        if (filter == 'All Videos') return const SizedBox.shrink();
+
+                        return Padding(
+                          padding: EdgeInsets.only(right: 2.w),
+                          child: FilterChipWidget(
+                            label: filter,
+                            isSelected: true,
+                            count: _allVideos
+                                .where((video) {
+                                  final category = video is Map ? 
+                                    (video['category'] ?? '') : 
+                                    (video.category ?? '');
+                                  return category == filter;
+                                })
+                                .length,
+                            onTap: () => _toggleFilter(filter),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                // Video grid
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _onRefresh,
+                    color: AppTheme.lightTheme.colorScheme.primary,
+                    child: _filteredVideos.isEmpty
+                        ? _buildEmptyState()
+                        : GridView.builder(
+                            controller: _scrollController,
+                            padding: EdgeInsets.all(4.w),
+                            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                              maxCrossAxisExtent: MediaQuery.of(context).orientation ==
+                                      Orientation.portrait
+                                  ? 50.w  // Max width for each card in portrait
+                                  : 80.w, // Max width for each card in landscape  
+                              childAspectRatio: MediaQuery.of(context).orientation ==
+                                      Orientation.portrait ? 0.6 : 1.5,
+                              crossAxisSpacing: 3.w,
+                              mainAxisSpacing: 3.w,
+                            ),
+                            itemCount:
+                                _filteredVideos.length + (_isLoading ? 2 : 0),
+                            itemBuilder: (context, index) {
+                              if (index >= _filteredVideos.length) {
+                                return _buildSkeletonCard();
+                              }
+
+                              final video = _filteredVideos[index];
+                              return VideoCardWidget(
+                                video: video,
+                                onTap: () => _onVideoTap(video),
+                                onLongPress: () => _onVideoLongPress(video),
+                              );
+                            },
+                          ),
+                  ),
+                ),
+              ],
             ),
-            label: 'Videos',
           ),
-          BottomNavigationBarItem(
-            icon: CustomIconWidget(
-              iconName: 'quiz',
-              color: AppTheme
-                  .lightTheme.bottomNavigationBarTheme.unselectedItemColor!,
-              size: 24,
-            ),
-            activeIcon: CustomIconWidget(
-              iconName: 'quiz',
-              color: AppTheme
-                  .lightTheme.bottomNavigationBarTheme.selectedItemColor!,
-              size: 24,
-            ),
-            label: 'Tests',
+          bottomNavigationBar: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            currentIndex: 1, // Videos tab active
+            backgroundColor:
+                AppTheme.lightTheme.bottomNavigationBarTheme.backgroundColor,
+            selectedItemColor:
+                AppTheme.lightTheme.bottomNavigationBarTheme.selectedItemColor,
+            unselectedItemColor:
+                AppTheme.lightTheme.bottomNavigationBarTheme.unselectedItemColor,
+            items: [
+              BottomNavigationBarItem(
+                icon: CustomIconWidget(
+                  iconName: 'home',
+                  color: AppTheme
+                      .lightTheme.bottomNavigationBarTheme.unselectedItemColor!,
+                  size: 24,
+                ),
+                activeIcon: CustomIconWidget(
+                  iconName: 'home',
+                  color: AppTheme
+                      .lightTheme.bottomNavigationBarTheme.selectedItemColor!,
+                  size: 24,
+                ),
+                label: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: CustomIconWidget(
+                  iconName: 'play_circle_filled',
+                  color: AppTheme
+                      .lightTheme.bottomNavigationBarTheme.selectedItemColor!,
+                  size: 24,
+                ),
+                label: 'Videos',
+              ),
+              BottomNavigationBarItem(
+                icon: CustomIconWidget(
+                  iconName: 'quiz',
+                  color: AppTheme
+                      .lightTheme.bottomNavigationBarTheme.unselectedItemColor!,
+                  size: 24,
+                ),
+                activeIcon: CustomIconWidget(
+                  iconName: 'quiz',
+                  color: AppTheme
+                      .lightTheme.bottomNavigationBarTheme.selectedItemColor!,
+                  size: 24,
+                ),
+                label: 'Tests',
+              ),
+              BottomNavigationBarItem(
+                icon: CustomIconWidget(
+                  iconName: 'person',
+                  color: AppTheme
+                      .lightTheme.bottomNavigationBarTheme.unselectedItemColor!,
+                  size: 24,
+                ),
+                activeIcon: CustomIconWidget(
+                  iconName: 'person',
+                  color: AppTheme
+                      .lightTheme.bottomNavigationBarTheme.selectedItemColor!,
+                  size: 24,
+                ),
+                label: 'Profile',
+              ),
+            ],
+            onTap: (index) {
+              switch (index) {
+                case 0:
+                  Navigator.pushNamed(context, '/dashboard-home-screen');
+                  break;
+                case 1:
+                  // Already on Videos screen
+                  break;
+                case 2:
+                  // Navigate to Tests screen (not implemented)
+                  break;
+                case 3:
+                  // Navigate to Profile screen (not implemented)
+                  break;
+              }
+            },
           ),
-          BottomNavigationBarItem(
-            icon: CustomIconWidget(
-              iconName: 'person',
-              color: AppTheme
-                  .lightTheme.bottomNavigationBarTheme.unselectedItemColor!,
-              size: 24,
-            ),
-            activeIcon: CustomIconWidget(
-              iconName: 'person',
-              color: AppTheme
-                  .lightTheme.bottomNavigationBarTheme.selectedItemColor!,
-              size: 24,
-            ),
-            label: 'Profile',
-          ),
-        ],
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.pushNamed(context, '/dashboard-home-screen');
-              break;
-            case 1:
-              // Already on Videos screen
-              break;
-            case 2:
-              // Navigate to Tests screen (not implemented)
-              break;
-            case 3:
-              // Navigate to Profile screen (not implemented)
-              break;
-          }
-        },
-      ),
+        );
+      },
     );
   }
 

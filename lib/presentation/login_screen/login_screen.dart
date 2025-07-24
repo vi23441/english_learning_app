@@ -1,31 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/app_export.dart';
+import '../../providers/auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
-
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  _LoginScreenState createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isPasswordVisible = false;
-  bool _isLoading = false;
-  String? _emailError;
-  String? _passwordError;
+  
+  bool _isFormValid = false;
+  bool _obscurePassword = true;
 
-  // Mock credentials for authentication
-  final Map<String, String> _mockCredentials = {
-    'student@edulearn.com': 'student123',
-    'admin@edulearn.com': 'admin123',
-    'teacher@edulearn.com': 'teacher123',
-  };
+  @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(_updateFormValidity);
+    _passwordController.addListener(_updateFormValidity);
+  }
 
   @override
   void dispose() {
@@ -34,412 +33,258 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _validateEmail(String value) {
+  void _updateFormValidity() {
     setState(() {
-      if (value.isEmpty) {
-        _emailError = 'Email is required';
-      } else if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-        _emailError = 'Please enter a valid email address';
-      } else {
-        _emailError = null;
-      }
+      _isFormValid = _emailController.text.trim().isNotEmpty &&
+          _passwordController.text.isNotEmpty;
     });
   }
 
-  void _validatePassword(String value) {
+  void _togglePasswordVisibility() {
     setState(() {
-      if (value.isEmpty) {
-        _passwordError = 'Password is required';
-      } else if (value.length < 6) {
-        _passwordError = 'Password must be at least 6 characters';
-      } else {
-        _passwordError = null;
-      }
+      _obscurePassword = !_obscurePassword;
     });
-  }
-
-  bool get _isFormValid {
-    return _emailError == null &&
-        _passwordError == null &&
-        _emailController.text.isNotEmpty &&
-        _passwordController.text.isNotEmpty;
   }
 
   Future<void> _handleLogin() async {
     if (!_isFormValid) return;
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    // Simulate network delay
-    await Future.delayed(const Duration(seconds: 2));
-
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
-    if (_mockCredentials.containsKey(email) &&
-        _mockCredentials[email] == password) {
+    final success = await authProvider.login(email, password);
+
+    if (success) {
       // Success - trigger haptic feedback
       HapticFeedback.lightImpact();
-
+      
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/dashboard-home-screen');
+        Navigator.pushReplacementNamed(context, authProvider.getDashboardRoute());
       }
     } else {
-      // Show error message
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Invalid credentials. Please check your email and password.',
-              style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-                color: Colors.white,
-              ),
-            ),
-            backgroundColor: AppTheme.errorLight,
-            behavior: SnackBarBehavior.floating,
-            margin: EdgeInsets.all(4.w),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
-      }
-    }
-
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
+      // Error - show toast
+      _showErrorMessage(authProvider.error ?? 'Login failed');
     }
   }
 
-  void _handleForgotPassword() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Password reset link sent to your email',
-          style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-            color: Colors.white,
-          ),
+  void _showErrorMessage(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
         ),
-        backgroundColor: AppTheme.successLight,
-        behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.all(4.w),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-    );
+      );
+    }
   }
 
   void _navigateToRegistration() {
     Navigator.pushNamed(context, '/registration-screen');
   }
 
-  void _navigateToSplash() {
-    Navigator.pushReplacementNamed(context, '/splash-screen');
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.lightTheme.scaffoldBackgroundColor,
-      body: SafeArea(
-        child: GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 4.h),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: MediaQuery.of(context).size.height -
-                    MediaQuery.of(context).padding.top -
-                    MediaQuery.of(context).padding.bottom,
-              ),
-              child: IntrinsicHeight(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Back button
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: IconButton(
-                        onPressed: _navigateToSplash,
-                        icon: CustomIconWidget(
-                          iconName: 'arrow_back',
-                          color: AppTheme.lightTheme.colorScheme.onSurface,
-                          size: 6.w,
-                        ),
-                        padding: EdgeInsets.zero,
-                        constraints: BoxConstraints(
-                          minWidth: 10.w,
-                          minHeight: 6.h,
-                        ),
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        final isLoading = authProvider.isLoading;
+        
+        return Scaffold(
+          backgroundColor: Colors.white,
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(height: 40),
+                  
+                  // App Logo
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      color: AppTheme.primaryLight.withOpacity(0.1),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.school,
+                        size: 60,
+                        color: AppTheme.primaryLight,
                       ),
                     ),
+                  ),
+                  
+                  SizedBox(height: 32),
+                  
+                  // App Name
+                  Text(
+                    'EduLearn',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryLight,
+                    ),
+                  ),
+                  
+                  SizedBox(height: 8),
+                  
+                  // Subtitle
+                  Text(
+                    'Learn English Anytime, Anywhere',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  
+                  SizedBox(height: 48),
 
-                    SizedBox(height: 2.h),
-
-                    // App Logo
-                    Center(
-                      child: Container(
-                        width: 25.w,
-                        height: 25.w,
-                        decoration: BoxDecoration(
-                          color: AppTheme.lightTheme.colorScheme.primary,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: AppTheme.getElevationShadow(
-                            isLight: true,
-                            elevation: 4,
+                  // Login Form
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Email Field
+                        TextFormField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          decoration: InputDecoration(
+                            labelText: 'Email',
+                            hintText: 'Enter your email',
+                            prefixIcon: Icon(Icons.email_outlined),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[50],
                           ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your email';
+                            }
+                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                              return 'Please enter a valid email';
+                            }
+                            return null;
+                          },
                         ),
-                        child: Center(
-                          child: CustomIconWidget(
-                            iconName: 'school',
-                            color: Colors.white,
-                            size: 12.w,
-                          ),
-                        ),
-                      ),
-                    ),
 
-                    SizedBox(height: 4.h),
+                        SizedBox(height: 20),
 
-                    // Welcome Text
-                    Text(
-                      'Welcome Back!',
-                      style: AppTheme.lightTheme.textTheme.headlineMedium
-                          ?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.lightTheme.colorScheme.onSurface,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    SizedBox(height: 1.h),
-
-                    Text(
-                      'Sign in to continue your learning journey',
-                      style: AppTheme.lightTheme.textTheme.bodyLarge?.copyWith(
-                        color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    SizedBox(height: 6.h),
-
-                    // Login Form
-                    Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // Email Field
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Email Address',
-                                style: AppTheme.lightTheme.textTheme.labelLarge
-                                    ?.copyWith(
-                                  color:
-                                      AppTheme.lightTheme.colorScheme.onSurface,
-                                ),
+                        // Password Field
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          textInputAction: TextInputAction.done,
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            hintText: 'Enter your password',
+                            prefixIcon: Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              onPressed: _togglePasswordVisibility,
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
                               ),
-                              SizedBox(height: 1.h),
-                              TextFormField(
-                                controller: _emailController,
-                                keyboardType: TextInputType.emailAddress,
-                                textInputAction: TextInputAction.next,
-                                onChanged: _validateEmail,
-                                enabled: !_isLoading,
-                                decoration: InputDecoration(
-                                  hintText: 'Enter your email address',
-                                  prefixIcon: Padding(
-                                    padding: EdgeInsets.all(3.w),
-                                    child: CustomIconWidget(
-                                      iconName: 'email',
-                                      color: AppTheme.lightTheme.colorScheme
-                                          .onSurfaceVariant,
-                                      size: 5.w,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[50],
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your password';
+                            }
+                            if (value.length < 6) {
+                              return 'Password must be at least 6 characters';
+                            }
+                            return null;
+                          },
+                          onFieldSubmitted: (_) {
+                            if (_isFormValid && !isLoading) {
+                              _handleLogin();
+                            }
+                          },
+                        ),
+
+                        SizedBox(height: 32),
+
+                        // Login Button
+                        SizedBox(
+                          height: 56,
+                          child: ElevatedButton(
+                            onPressed: (_isFormValid && !isLoading)
+                                ? _handleLogin
+                                : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primaryLight,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 2,
+                            ),
+                            child: isLoading
+                                ? SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                : Text(
+                                    'Login',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  errorText: _emailError,
-                                  errorMaxLines: 2,
-                                ),
-                              ),
-                            ],
                           ),
+                        ),
 
-                          SizedBox(height: 3.h),
+                        SizedBox(height: 24),
 
-                          // Password Field
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Password',
-                                style: AppTheme.lightTheme.textTheme.labelLarge
-                                    ?.copyWith(
-                                  color:
-                                      AppTheme.lightTheme.colorScheme.onSurface,
-                                ),
+                        // Registration Link
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Don\'t have an account? ',
+                              style: TextStyle(
+                                color: Colors.grey[600],
                               ),
-                              SizedBox(height: 1.h),
-                              TextFormField(
-                                controller: _passwordController,
-                                obscureText: !_isPasswordVisible,
-                                textInputAction: TextInputAction.done,
-                                onChanged: _validatePassword,
-                                enabled: !_isLoading,
-                                onFieldSubmitted: (_) => _handleLogin(),
-                                decoration: InputDecoration(
-                                  hintText: 'Enter your password',
-                                  prefixIcon: Padding(
-                                    padding: EdgeInsets.all(3.w),
-                                    child: CustomIconWidget(
-                                      iconName: 'lock',
-                                      color: AppTheme.lightTheme.colorScheme
-                                          .onSurfaceVariant,
-                                      size: 5.w,
-                                    ),
-                                  ),
-                                  suffixIcon: IconButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        _isPasswordVisible =
-                                            !_isPasswordVisible;
-                                      });
-                                    },
-                                    icon: CustomIconWidget(
-                                      iconName: _isPasswordVisible
-                                          ? 'visibility_off'
-                                          : 'visibility',
-                                      color: AppTheme.lightTheme.colorScheme
-                                          .onSurfaceVariant,
-                                      size: 5.w,
-                                    ),
-                                  ),
-                                  errorText: _passwordError,
-                                  errorMaxLines: 2,
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          SizedBox(height: 2.h),
-
-                          // Forgot Password Link
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed:
-                                  _isLoading ? null : _handleForgotPassword,
+                            ),
+                            TextButton(
+                              onPressed: isLoading ? null : _navigateToRegistration,
                               child: Text(
-                                'Forgot Password?',
-                                style: AppTheme.lightTheme.textTheme.bodyMedium
-                                    ?.copyWith(
-                                  color:
-                                      AppTheme.lightTheme.colorScheme.primary,
-                                  fontWeight: FontWeight.w500,
+                                'Sign Up',
+                                style: TextStyle(
+                                  color: AppTheme.primaryLight,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
-                          ),
-
-                          SizedBox(height: 4.h),
-
-                          // Login Button
-                          SizedBox(
-                            height: 7.h,
-                            child: ElevatedButton(
-                              onPressed: (_isFormValid && !_isLoading)
-                                  ? _handleLogin
-                                  : null,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _isFormValid
-                                    ? AppTheme.lightTheme.colorScheme.primary
-                                    : AppTheme
-                                        .lightTheme.colorScheme.onSurfaceVariant
-                                        .withValues(alpha: 0.3),
-                                foregroundColor: Colors.white,
-                                elevation: _isFormValid ? 2 : 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: _isLoading
-                                  ? SizedBox(
-                                      width: 5.w,
-                                      height: 5.w,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                          Colors.white,
-                                        ),
-                                      ),
-                                    )
-                                  : Text(
-                                      'Login',
-                                      style: AppTheme
-                                          .lightTheme.textTheme.labelLarge
-                                          ?.copyWith(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 16.sp,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
+                      ],
                     ),
-
-                    const Spacer(),
-
-                    // Registration Link
-                    Padding(
-                      padding: EdgeInsets.only(bottom: 2.h),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'New student? ',
-                            style: AppTheme.lightTheme.textTheme.bodyMedium
-                                ?.copyWith(
-                              color: AppTheme
-                                  .lightTheme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed:
-                                _isLoading ? null : _navigateToRegistration,
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.symmetric(horizontal: 2.w),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            child: Text(
-                              'Sign Up',
-                              style: AppTheme.lightTheme.textTheme.bodyMedium
-                                  ?.copyWith(
-                                color: AppTheme.lightTheme.colorScheme.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

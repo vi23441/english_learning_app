@@ -3,9 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/app_export.dart';
 import '../../routes/app_routes.dart';
-import './widgets/performance_chart_widget.dart';
-import './widgets/question_review_widget.dart';
-import './widgets/score_card_widget.dart';
+import '../../models/test.dart';
 
 class TestResultsScreen extends StatefulWidget {
   const TestResultsScreen({Key? key}) : super(key: key);
@@ -17,7 +15,8 @@ class TestResultsScreen extends StatefulWidget {
 class _TestResultsScreenState extends State<TestResultsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  Map<String, dynamic>? testResults;
+  TestResult? testResult;
+  Test? test;
 
   @override
   void initState() {
@@ -31,7 +30,8 @@ class _TestResultsScreenState extends State<TestResultsScreen>
     final args =
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
     if (args != null) {
-      testResults = args;
+      testResult = args['testResult'] as TestResult?;
+      test = args['test'] as Test?;
     }
   }
 
@@ -43,23 +43,39 @@ class _TestResultsScreenState extends State<TestResultsScreen>
 
   @override
   Widget build(BuildContext context) {
-    if (testResults == null) {
+    if (testResult == null || test == null) {
       return Scaffold(
         appBar: AppBar(
           title: Text('Test Results'),
         ),
-        body: const Center(
-          child: CircularProgressIndicator(),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: Colors.red),
+              SizedBox(height: 16),
+              Text(
+                'No test results found',
+                style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+              SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => Navigator.pushReplacementNamed(
+                  context,
+                  AppRoutes.dashboardHomeScreen,
+                ),
+                child: Text('Go to Home'),
+              ),
+            ],
+          ),
         ),
       );
     }
 
-    final score = testResults!['score'] as int;
-    final totalQuestions = testResults!['totalQuestions'] as int;
-    final userAnswers = testResults!['userAnswers'] as Map<int, dynamic>;
-    final questions = testResults!['questions'] as List<Map<String, dynamic>>;
-    final timeTaken = testResults!['timeTaken'] as int;
-    final percentage = (score / totalQuestions * 100).round();
+    final score = testResult!.score;
+    final totalQuestions = testResult!.totalQuestions;
+    final percentage = score;
+    final timeTaken = (testResult!.timeTaken / 60).round(); // Convert to minutes
 
     return Scaffold(
       appBar: AppBar(
@@ -88,13 +104,43 @@ class _TestResultsScreenState extends State<TestResultsScreen>
           // Score overview
           Container(
             padding: const EdgeInsets.all(16),
-            child: ScoreCardWidget(
-              score: score,
-              totalQuestions: totalQuestions,
-              percentage: percentage,
-              timeTaken: timeTaken,
+            child: _buildScoreCard(testResult!.correctAnswers, totalQuestions, percentage, timeTaken),
+          ),
+
+          // Action buttons
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        AppRoutes.dashboardHomeScreen,
+                        (route) => false,
+                      );
+                    },
+                    child: const Text('Back to Home'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pushReplacementNamed(
+                        context,
+                        AppRoutes.dashboardHomeScreen,
+                      );
+                    },
+                    child: const Text('Go to Dashboard'),
+                  ),
+                ),
+              ],
             ),
           ),
+
+          const SizedBox(height: 16),
 
           // Tab bar
           Container(
@@ -102,7 +148,7 @@ class _TestResultsScreenState extends State<TestResultsScreen>
               color: Theme.of(context).colorScheme.surface,
               boxShadow: [
                 BoxShadow(
-                  color: Theme.of(context).colorScheme.shadow.withAlpha(26),
+                  color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -110,13 +156,13 @@ class _TestResultsScreenState extends State<TestResultsScreen>
             ),
             child: TabBar(
               controller: _tabController,
-              tabs: [
+              tabs: const [
                 Tab(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.analytics, size: 18),
-                      const SizedBox(width: 4),
+                      SizedBox(width: 4),
                       Text('Overview'),
                     ],
                   ),
@@ -126,7 +172,7 @@ class _TestResultsScreenState extends State<TestResultsScreen>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.quiz, size: 18),
-                      const SizedBox(width: 4),
+                      SizedBox(width: 4),
                       Text('Review'),
                     ],
                   ),
@@ -136,7 +182,7 @@ class _TestResultsScreenState extends State<TestResultsScreen>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.bar_chart, size: 18),
-                      const SizedBox(width: 4),
+                      SizedBox(width: 4),
                       Text('Stats'),
                     ],
                   ),
@@ -150,47 +196,74 @@ class _TestResultsScreenState extends State<TestResultsScreen>
             child: TabBarView(
               controller: _tabController,
               children: [
-                // Overview tab
-                _buildOverviewTab(score, totalQuestions, percentage, timeTaken),
-
-                // Review tab
-                _buildReviewTab(questions, userAnswers),
-
-                // Statistics tab
-                _buildStatisticsTab(
-                    score, totalQuestions, questions, userAnswers),
+                _buildOverviewTab(testResult!.correctAnswers, totalQuestions, percentage, timeTaken),
+                _buildReviewTab(test!.questions, testResult!.answers),
+                _buildStatisticsTab(testResult!, test!),
               ],
             ),
           ),
         ],
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16),
-        child: Row(
+    );
+  }
+
+  Widget _buildScoreCard(int score, int totalQuestions, int percentage, int timeTaken) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
           children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () {
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    AppRoutes.dashboardHomeScreen,
-                    (route) => false,
-                  );
-                },
-                child: const Text('Back to Home'),
+            Text(
+              'Your Score',
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pushReplacementNamed(
-                    context,
-                    AppRoutes.testTakingScreen,
-                  );
-                },
-                child: const Text('Retake Test'),
+            const SizedBox(height: 12),
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _getScoreColor(percentage).withOpacity(0.1),
+                border: Border.all(
+                  color: _getScoreColor(percentage),
+                  width: 4,
+                ),
               ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '$percentage%',
+                      style: GoogleFonts.inter(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: _getScoreColor(percentage),
+                      ),
+                    ),
+                    Text(
+                      '$score/$totalQuestions',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildScoreStat('Time Taken', '${timeTaken}m'),
+                _buildScoreStat('Accuracy', '$percentage%'),
+                _buildScoreStat('Status', percentage >= 70 ? 'Passed' : 'Failed'),
+              ],
             ),
           ],
         ),
@@ -198,8 +271,35 @@ class _TestResultsScreenState extends State<TestResultsScreen>
     );
   }
 
-  Widget _buildOverviewTab(
-      int score, int totalQuestions, int percentage, int timeTaken) {
+  Widget _buildScoreStat(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: GoogleFonts.inter(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _getScoreColor(int percentage) {
+    if (percentage >= 80) return Colors.green;
+    if (percentage >= 60) return Colors.orange;
+    return Colors.red;
+  }
+
+  Widget _buildOverviewTab(int score, int totalQuestions, int percentage, int timeTaken) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -219,48 +319,13 @@ class _TestResultsScreenState extends State<TestResultsScreen>
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildSummaryItem(
-                          'Correct Answers',
-                          '$score/$totalQuestions',
-                          Icons.check_circle,
-                          Theme.of(context).colorScheme.secondary,
-                        ),
-                      ),
-                      Expanded(
-                        child: _buildSummaryItem(
-                          'Accuracy',
-                          '$percentage%',
-                          Icons.help_outline,
-                          Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildSummaryItem(
-                          'Time Taken',
-                          '${timeTaken}m',
-                          Icons.timer,
-                          Theme.of(context).colorScheme.tertiary,
-                        ),
-                      ),
-                      Expanded(
-                        child: _buildSummaryItem(
-                          'Grade',
-                          _getGrade(percentage),
-                          Icons.grade,
-                          _getGradeColor(percentage),
-                        ),
-                      ),
-                    ],
-                  ),
+                  _buildOverviewRow('Total Questions', totalQuestions.toString()),
+                  _buildOverviewRow('Correct Answers', score.toString()),
+                  _buildOverviewRow('Incorrect Answers', (totalQuestions - score).toString()),
+                  _buildOverviewRow('Accuracy', '$percentage%'),
+                  _buildOverviewRow('Time Taken', '${timeTaken} minutes'),
+                  _buildOverviewRow('Status', percentage >= 70 ? 'Passed ✅' : 'Failed ❌'),
                 ],
               ),
             ),
@@ -318,19 +383,11 @@ class _TestResultsScreenState extends State<TestResultsScreen>
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.lightbulb,
-                            size: 16,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          const SizedBox(width: 8),
+                          Text('• ', style: GoogleFonts.inter(fontSize: 14)),
                           Expanded(
                             child: Text(
                               recommendation,
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
+                              style: GoogleFonts.inter(fontSize: 14),
                             ),
                           ),
                         ],
@@ -346,43 +403,258 @@ class _TestResultsScreenState extends State<TestResultsScreen>
     );
   }
 
-  Widget _buildReviewTab(
-      List<Map<String, dynamic>> questions, Map<int, dynamic> userAnswers) {
+  Widget _buildOverviewRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          Text(
+            value,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getFeedback(int percentage) {
+    if (percentage >= 90) {
+      return 'Excellent work! You have demonstrated a strong understanding of the material.';
+    } else if (percentage >= 80) {
+      return 'Great job! You performed very well on this test.';
+    } else if (percentage >= 70) {
+      return 'Good work! You passed the test. Consider reviewing the topics you missed.';
+    } else if (percentage >= 60) {
+      return 'Not bad, but there\'s room for improvement. Review the material and try again.';
+    } else {
+      return 'This test was challenging for you. Consider reviewing the material thoroughly before retaking.';
+    }
+  }
+
+  List<String> _getRecommendations(int percentage) {
+    if (percentage >= 80) {
+      return [
+        'Continue practicing to maintain your excellent performance',
+        'Try more advanced tests to challenge yourself',
+        'Help others who are struggling with this topic',
+      ];
+    } else if (percentage >= 70) {
+      return [
+        'Review the questions you got wrong',
+        'Practice similar questions to improve your skills',
+        'Focus on understanding concepts rather than memorizing',
+      ];
+    } else {
+      return [
+        'Review the course material thoroughly',
+        'Take additional practice tests',
+        'Consider seeking help from an instructor or tutor',
+        'Focus on understanding the fundamental concepts',
+      ];
+    }
+  }
+
+  Widget _buildReviewTab(List<TestQuestion> questions, Map<String, String> userAnswers) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: questions.length,
       itemBuilder: (context, index) {
-        return QuestionReviewWidget(
-          question: questions[index],
-          questionNumber: index + 1,
-          userAnswer: userAnswers[index],
-          isCorrect: _isAnswerCorrect(questions[index], userAnswers[index]),
+        final question = questions[index];
+        final userAnswer = userAnswers[question.id] ?? '';
+        final isCorrect = _isAnswerCorrect(question, userAnswer);
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Question ${index + 1}',
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  question.question,
+                  style: GoogleFonts.inter(fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+                
+                // Options for multiple choice
+                if (question.questionType == 'multiple_choice')
+                  ...question.options.asMap().entries.map((entry) {
+                    final optionIndex = entry.key;
+                    final optionText = entry.value;
+                    final isUserChoice = userAnswer == optionIndex.toString();
+                    final isCorrectChoice = question.correctAnswer == optionIndex.toString();
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 4),
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: isCorrectChoice
+                            ? Colors.green.withOpacity(0.15)
+                            : (isUserChoice ? Colors.red.withOpacity(0.15) : Colors.transparent),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isCorrectChoice
+                              ? Colors.green
+                              : (isUserChoice ? Colors.red : Theme.of(context).colorScheme.outline),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isCorrectChoice
+                                ? Icons.check_circle
+                                : (isUserChoice ? Icons.cancel : Icons.radio_button_unchecked),
+                            color: isCorrectChoice
+                                ? Colors.green
+                                : (isUserChoice ? Colors.red : Theme.of(context).colorScheme.onSurfaceVariant),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              optionText,
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                fontWeight: isCorrectChoice || isUserChoice ? FontWeight.w500 : FontWeight.normal,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+
+                // User answer for other question types
+                if (question.questionType != 'multiple_choice')
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isCorrect
+                          ? Colors.green.withOpacity(0.1)
+                          : Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isCorrect ? Colors.green : Colors.red,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Your Answer:',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          userAnswer.isEmpty ? 'No answer provided' : userAnswer,
+                          style: GoogleFonts.inter(fontSize: 14),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Correct Answer:',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          question.correctAnswer,
+                          style: GoogleFonts.inter(fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // Explanation
+                if (question.explanation.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Explanation:',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          question.explanation,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
         );
       },
     );
   }
 
-  Widget _buildStatisticsTab(int score, int totalQuestions,
-      List<Map<String, dynamic>> questions, Map<int, dynamic> userAnswers) {
+  String _formatUserAnswer(TestQuestion question, String userAnswer) {
+    if (question.questionType == 'multiple_choice' && question.options.isNotEmpty) {
+      try {
+        final index = int.parse(userAnswer);
+        if (index >= 0 && index < question.options.length) {
+          return question.options[index];
+        }
+      } catch (e) {
+        // If parsing fails, return the raw answer
+      }
+    }
+    return userAnswer;
+  }
+
+  String _formatCorrectAnswer(TestQuestion question) {
+    if (question.questionType == 'multiple_choice' && question.options.isNotEmpty) {
+      try {
+        final index = int.parse(question.correctAnswer);
+        if (index >= 0 && index < question.options.length) {
+          return question.options[index];
+        }
+      } catch (e) {
+        // If parsing fails, return the raw answer
+      }
+    }
+    return question.correctAnswer;
+  }
+
+  Widget _buildStatisticsTab(TestResult testResult, Test test) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Performance chart
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: PerformanceChartWidget(
-                correct: score,
-                incorrect: totalQuestions - score,
-                unanswered: totalQuestions - userAnswers.length,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Question type breakdown
+          // Test info card
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -390,53 +662,45 @@ class _TestResultsScreenState extends State<TestResultsScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Question Type Performance',
+                    'Test Information',
                     style: GoogleFonts.inter(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  ..._getQuestionTypeStats(questions, userAnswers).entries.map(
-                        (entry) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  entry.key,
-                                  style: GoogleFonts.inter(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                flex: 3,
-                                child: LinearProgressIndicator(
-                                  value: (entry.value['percentage'] as int) / 100,
-                                  backgroundColor: Theme.of(context)
-                                      .colorScheme
-                                      .outline
-                                      .withAlpha(51),
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Theme.of(context).colorScheme.primary,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '${entry.value['percentage']}%',
-                                style: GoogleFonts.inter(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                  const SizedBox(height: 12),
+                  _buildStatRow('Test Title', test.title),
+                  _buildStatRow('Category', test.category.displayName),
+                  _buildStatRow('Difficulty', test.difficulty.displayName),
+                  _buildStatRow('Duration', '${test.duration} minutes'),
+                  _buildStatRow('Passing Score', '${test.passingScore}%'),
+                ],
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Performance stats card
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Performance Statistics',
+                    style: GoogleFonts.inter(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildStatRow('Score', '${testResult.score}%'),
+                  _buildStatRow('Correct Answers', '${testResult.correctAnswers}/${testResult.totalQuestions}'),
+                  _buildStatRow('Time Taken', '${(testResult.timeTaken / 60).round()} minutes'),
+                  _buildStatRow('Status', testResult.isPassed ? 'Passed' : 'Failed'),
+                  _buildStatRow('Completed At', testResult.completedAt.toString().split('.')[0]),
                 ],
               ),
             ),
@@ -446,150 +710,56 @@ class _TestResultsScreenState extends State<TestResultsScreen>
     );
   }
 
-  Widget _buildSummaryItem(
-      String title, String value, IconData icon, Color color) {
-    return Column(
-      children: [
-        Icon(icon, color: color, size: 24),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: GoogleFonts.inter(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: color,
+  Widget _buildStatRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          title,
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            color: Theme.of(context).colorScheme.onSurface,
+          Text(
+            value,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  String _getGrade(int percentage) {
-    if (percentage >= 90) return 'A+';
-    if (percentage >= 80) return 'A';
-    if (percentage >= 70) return 'B';
-    if (percentage >= 60) return 'C';
-    if (percentage >= 50) return 'D';
-    return 'F';
-  }
+  bool _isAnswerCorrect(TestQuestion question, String userAnswer) {
+    if (userAnswer.isEmpty) return false;
 
-  Color _getGradeColor(int percentage) {
-    if (percentage >= 80) return Colors.green;
-    if (percentage >= 60) return Colors.orange;
-    return Colors.red;
-  }
-
-  String _getFeedback(int percentage) {
-    if (percentage >= 90) {
-      return 'Excellent work! You have mastered this topic and demonstrated exceptional understanding.';
-    } else if (percentage >= 80) {
-      return 'Great job! You have a solid understanding of the material with minor areas for improvement.';
-    } else if (percentage >= 70) {
-      return 'Good effort! You understand most concepts but may benefit from reviewing some topics.';
-    } else if (percentage >= 60) {
-      return 'Fair performance. Consider reviewing the material and practicing more to improve your understanding.';
-    } else {
-      return 'This topic needs more attention. Review the material thoroughly and consider seeking additional help.';
-    }
-  }
-
-  List<String> _getRecommendations(int percentage) {
-    if (percentage >= 90) {
-      return [
-        'Challenge yourself with advanced topics',
-        'Help others who are struggling with this material',
-        'Consider taking more advanced courses',
-      ];
-    } else if (percentage >= 80) {
-      return [
-        'Review the questions you got wrong',
-        'Practice similar problems to reinforce learning',
-        'Move on to the next topic when ready',
-      ];
-    } else if (percentage >= 70) {
-      return [
-        'Review the material for topics you struggled with',
-        'Take practice tests to identify weak areas',
-        'Consider forming study groups with classmates',
-      ];
-    } else if (percentage >= 60) {
-      return [
-        'Dedicate more time to studying this material',
-        'Seek help from teachers or tutors',
-        'Use additional learning resources and practice materials',
-      ];
-    } else {
-      return [
-        'Start with the basics and build your foundation',
-        'Seek immediate help from teachers or tutors',
-        'Use multiple learning resources and study methods',
-        'Consider retaking the test after more preparation',
-      ];
-    }
-  }
-
-  bool _isAnswerCorrect(Map<String, dynamic> question, dynamic userAnswer) {
-    if (userAnswer == null) return false;
-
-    switch (question['type']) {
+    switch (question.questionType) {
       case 'multiple_choice':
-        return userAnswer == question['correctAnswer'];
-      case 'fill_in_blank':
-        return userAnswer.toString().toLowerCase() ==
-            question['correctAnswer'].toString().toLowerCase();
-      case 'matching':
-        // For simplicity, assume correct if all pairs match
-        final correctPairs = question['pairs'] as List<Map<String, String>>;
-        final userPairs = userAnswer as Map<String, String>;
-        for (var pair in correctPairs) {
-          if (userPairs[pair['country']] != pair['capital']) {
-            return false;
-          }
+        // For multiple choice, check if the selected option index matches
+        try {
+          final selectedIndex = int.parse(userAnswer);
+          final correctIndex = int.parse(question.correctAnswer);
+          return selectedIndex == correctIndex;
+        } catch (e) {
+          // If parsing fails, do string comparison
+          return userAnswer.toLowerCase() == question.correctAnswer.toLowerCase();
         }
-        return true;
+      case 'fill_blank':
+      case 'fill_in_blank':
+        return userAnswer.toLowerCase().trim() == question.correctAnswer.toLowerCase().trim();
+      case 'true_false':
+        return userAnswer.toLowerCase() == question.correctAnswer.toLowerCase();
+      case 'essay':
+        // For essay questions, we might need more sophisticated checking
+        // For now, just check if something was written
+        return userAnswer.trim().isNotEmpty;
       default:
-        return false;
+        return userAnswer.toLowerCase() == question.correctAnswer.toLowerCase();
     }
-  }
-
-  Map<String, Map<String, int>> _getQuestionTypeStats(
-      List<Map<String, dynamic>> questions, Map<int, dynamic> userAnswers) {
-    Map<String, Map<String, int>> stats = {};
-
-    for (int i = 0; i < questions.length; i++) {
-      final question = questions[i];
-      final type = question['type'] as String;
-      final isCorrect = _isAnswerCorrect(question, userAnswers[i]);
-
-      if (!stats.containsKey(type)) {
-        stats[type] = {'correct': 0, 'total': 0};
-      }
-
-      stats[type]!['total'] = stats[type]!['total']! + 1;
-      if (isCorrect) {
-        stats[type]!['correct'] = stats[type]!['correct']! + 1;
-      }
-    }
-
-    // Convert to percentage
-    Map<String, Map<String, int>> result = {};
-    stats.forEach((type, data) {
-      result[type] = {
-        'percentage': ((data['correct']! / data['total']!) * 100).round(),
-        'correct': data['correct']!,
-        'total': data['total']!,
-      };
-    });
-
-    return result;
   }
 }

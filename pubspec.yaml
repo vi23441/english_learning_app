@@ -1,27 +1,53 @@
 name: edulearn_mobile
 description: A new Flutter project.
 version: 1.0.0+1
-environment: 
+environment:
   sdk: ^3.6.0
-dependencies: 
-  flutter: 
+dependencies:
+  flutter:
     sdk: flutter
+  # Firebase dependencies
+  firebase_core: ^3.8.0
+  firebase_auth: ^5.3.3
+  cloud_firestore: ^5.5.0
+  firebase_storage: ^12.4.9
+
+  # UI and Design
   cached_network_image: ^3.3.1
   flutter_svg: ^2.0.9
+  sizer: ^2.0.15
+  google_fonts: ^6.1.0
+
+  # Networking and Storage
+  dio: ^5.4.0
   shared_preferences: ^2.2.2
   connectivity_plus: ^5.0.2
-  dio: ^5.4.0
-  fluttertoast: ^8.2.4
-  sizer: ^2.0.15
+
+  # Charts and Visualization
   fl_chart: ^0.65.0
-  google_fonts: ^6.1.0
+
+  # Media and Content
+  video_player: ^2.10.0
+  chewie: ^1.8.5
+  file_picker: ^8.1.4
+  audioplayers: ^6.0.0
+
+  # Utils
+  fluttertoast: ^8.2.4
+  uuid: ^4.5.1
+  intl: ^0.20.1
+
+  # State Management
+  provider: ^6.1.2
+
   web: any
-dev_dependencies: 
-  flutter_test: 
+  flutter_rating_bar: ^4.0.1
+dev_dependencies:
+  flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
-flutter: 
+flutter:
   uses-material-design: true
-  assets: 
+  assets:
     - assets/
     - assets/images/

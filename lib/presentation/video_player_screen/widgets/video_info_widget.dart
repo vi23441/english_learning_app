@@ -2,16 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
+import '../../../models/video.dart';
 
 class VideoInfoWidget extends StatefulWidget {
-  final Map<String, dynamic> videoData;
+  final Video video;
   final double currentRating;
   final bool hasRated;
   final Function(double) onRatingSubmit;
 
   const VideoInfoWidget({
     Key? key,
-    required this.videoData,
+    required this.video,
     required this.currentRating,
     required this.hasRated,
     required this.onRatingSubmit,
@@ -27,8 +28,6 @@ class _VideoInfoWidgetState extends State<VideoInfoWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final instructor = widget.videoData["instructor"] as Map<String, dynamic>;
-
     return Container(
       padding: EdgeInsets.all(4.w),
       child: Column(
@@ -36,7 +35,7 @@ class _VideoInfoWidgetState extends State<VideoInfoWidget> {
         children: [
           // Video Title
           Text(
-            widget.videoData["title"] ?? "",
+            widget.video.title,
             style: AppTheme.lightTheme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w600,
             ),
@@ -56,20 +55,20 @@ class _VideoInfoWidgetState extends State<VideoInfoWidget> {
               ),
               SizedBox(width: 1.w),
               Text(
-                '${widget.videoData["views"]} views',
+                '${widget.video.viewCount} views',
                 style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
                   color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
                 ),
               ),
               SizedBox(width: 4.w),
               CustomIconWidget(
-                iconName: 'thumb_up',
+                iconName: 'star',
                 color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
                 size: 4.w,
               ),
               SizedBox(width: 1.w),
               Text(
-                '${widget.videoData["likes"]}',
+                '${widget.video.rating.toStringAsFixed(1)}',
                 style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
                   color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
                 ),
@@ -82,7 +81,7 @@ class _VideoInfoWidgetState extends State<VideoInfoWidget> {
               ),
               SizedBox(width: 1.w),
               Text(
-                widget.videoData["duration"] ?? "",
+                _formatDuration(widget.video.duration),
                 style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
                   color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
                 ),
@@ -120,12 +119,10 @@ class _VideoInfoWidgetState extends State<VideoInfoWidget> {
                         SizedBox(height: 1.h),
                         Row(
                           children: [
-                            _buildStarRating(
-                                widget.videoData["rating"]?.toDouble() ?? 0.0,
-                                false),
+                            _buildStarRating(widget.video.rating, false),
                             SizedBox(width: 2.w),
                             Text(
-                              '${widget.videoData["rating"]} (${widget.videoData["totalRatings"]} ratings)',
+                              '${widget.video.rating.toStringAsFixed(1)} (based on ${widget.video.viewCount} views)',
                               style: AppTheme.lightTheme.textTheme.bodyMedium
                                   ?.copyWith(
                                 color: AppTheme
@@ -157,10 +154,24 @@ class _VideoInfoWidgetState extends State<VideoInfoWidget> {
                           style: ElevatedButton.styleFrom(
                             padding: EdgeInsets.symmetric(
                                 horizontal: 4.w, vertical: 1.h),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                          child: Text('Submit'),
+                          child: Text(
+                            'Submit Rating',
+                            style: TextStyle(fontSize: 12.sp),
+                          ),
                         ),
                     ],
+                  ),
+                  SizedBox(height: 1.h),
+                  Text(
+                    'Your rating helps other learners find quality content!',
+                    style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                      color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
                 ] else ...[
                   SizedBox(height: 2.h),
@@ -200,13 +211,17 @@ class _VideoInfoWidgetState extends State<VideoInfoWidget> {
             ),
             child: Row(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8.w),
-                  child: CustomImageWidget(
-                    imageUrl: instructor["avatar"] ?? "",
-                    width: 16.w,
-                    height: 16.w,
-                    fit: BoxFit.cover,
+                Container(
+                  width: 16.w,
+                  height: 16.w,
+                  decoration: BoxDecoration(
+                    color: AppTheme.lightTheme.colorScheme.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: CustomIconWidget(
+                    iconName: 'person',
+                    color: AppTheme.lightTheme.colorScheme.primary,
+                    size: 8.w,
                   ),
                 ),
                 SizedBox(width: 4.w),
@@ -215,7 +230,7 @@ class _VideoInfoWidgetState extends State<VideoInfoWidget> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        instructor["name"] ?? "",
+                        widget.video.uploadedBy,
                         style:
                             AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
@@ -223,7 +238,7 @@ class _VideoInfoWidgetState extends State<VideoInfoWidget> {
                       ),
                       SizedBox(height: 0.5.h),
                       Text(
-                        instructor["title"] ?? "",
+                        'Category: ${widget.video.category}',
                         style:
                             AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
                           color:
@@ -232,7 +247,7 @@ class _VideoInfoWidgetState extends State<VideoInfoWidget> {
                       ),
                       SizedBox(height: 0.5.h),
                       Text(
-                        instructor["experience"] ?? "",
+                        'Level: ${widget.video.level}',
                         style:
                             AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
                           color:
@@ -268,7 +283,7 @@ class _VideoInfoWidgetState extends State<VideoInfoWidget> {
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  widget.videoData["description"] ?? "",
+                  widget.video.description,
                   style: AppTheme.lightTheme.textTheme.bodyMedium,
                   maxLines: _isDescriptionExpanded ? null : 3,
                   overflow:
@@ -328,5 +343,11 @@ class _VideoInfoWidgetState extends State<VideoInfoWidget> {
         );
       }),
     );
+  }
+
+  String _formatDuration(int durationInSeconds) {
+    final minutes = durationInSeconds ~/ 60;
+    final seconds = durationInSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 }
