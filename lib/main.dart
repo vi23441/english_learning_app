@@ -6,6 +6,7 @@ import 'package:sizer/sizer.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 
 import '../core/app_export.dart';
 import '../widgets/custom_error_widget.dart';
@@ -18,17 +19,52 @@ import '../services/test_data_seeder.dart';
 import 'firebase_options.dart';
 
 void main() async {
+  debugPrint('main() started.');
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
     
-    // Initialize Firebase only if [DEFAULT] app does not exist, ignore duplicate error
-    try {
-      if (!Firebase.apps.any((app) => app.name == '[DEFAULT]')) {
+    debugPrint('Checking if Firebase [DEFAULT] app exists...');
+    bool firebaseDefaultAppExists = Firebase.apps.any((app) => app.name == '[DEFAULT]');
+    debugPrint('Firebase [DEFAULT] app exists: $firebaseDefaultAppExists');
+
+    if (firebaseDefaultAppExists) {
+      debugPrint('Firebase [DEFAULT] app already exists. Skipping initialization and App Check activation.');
+      for (var app in Firebase.apps) {
+        debugPrint('Existing Firebase app: ${app.name}');
+      }
+    }
+
+    if (!firebaseDefaultAppExists) {
+      debugPrint('Initializing Firebase...');
+      try {
         await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform,
         );
+        debugPrint('Firebase initialized.');
+      } catch (e) {
+        debugPrint('Error during Firebase initialization: $e');
+        if (e.toString().contains('A Firebase App named "[DEFAULT]" already exists')) {
+          // Ignore duplicate app error if it happens here
+        } else {
+          rethrow;
+        }
       }
-      
+    } else {
+      debugPrint('Firebase [DEFAULT] app already exists. Proceeding to App Check activation.');
+      for (var app in Firebase.apps) {
+        debugPrint('Existing Firebase app: ${app.name}');
+      }
+    }
+
+    // Configure Firebase App Check - This should run regardless of whether Firebase was just initialized or already existed
+    try {
+      debugPrint('Activating Firebase App Check...');
+      await FirebaseAppCheck.instance.activate(
+        androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+        appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
+      );
+      debugPrint('Firebase App Check activated.');
+
       // Configure Firebase settings to reduce warnings
       FirebaseFirestore.instance.settings = const Settings(
         persistenceEnabled: true,
@@ -40,10 +76,14 @@ void main() async {
         final seeder = TestDataSeeder();
         seeder.seedTestData();
       }
-      
+
     } catch (e) {
+      debugPrint('Error during App Check activation or other post-init setup: $e');
+      // We might still want to ignore duplicate app errors here if they somehow propagate,
+      // but the primary duplicate check is now outside this try block.
       if (e.toString().contains('A Firebase App named "[DEFAULT]" already exists')) {
-        // Ignore duplicate app error
+        // This case should ideally not happen here anymore if the logic is correct.
+        // But keeping it for robustness.
       } else {
         rethrow;
       }

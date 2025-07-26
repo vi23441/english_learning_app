@@ -54,8 +54,7 @@ class _DashboardHomeScreenState extends State<DashboardHomeScreen> {
         Navigator.pushNamed(context, AppRoutes.videoLibraryScreen);
         break;
       case 2:
-        // TestListScreen is commented out, so navigate to dashboard for now
-        Navigator.pushNamed(context, AppRoutes.dashboardHomeScreen); 
+        Navigator.pushNamed(context, AppRoutes.testListScreen);
         break;
       case 3:
         Navigator.pushNamed(context, AppRoutes.vocabularySetsScreen);
@@ -197,8 +196,7 @@ class _DashboardHomeScreenState extends State<DashboardHomeScreen> {
                       Navigator.pushNamed(context, AppRoutes.flashcardSetDetailScreen, arguments: 'default_flashcards_set_id');
                     }),
                     _buildFeatureCard('Tests', 'Take a test', Icons.quiz, () {
-                      // TestListScreen is commented out, so navigate to dashboard for now
-                      Navigator.pushNamed(context, AppRoutes.dashboardHomeScreen); 
+                      Navigator.pushNamed(context, AppRoutes.testListScreen);
                     }),
                     _buildFeatureCard('Videos', 'Watch lessons', Icons.video_library, () {
                       Navigator.pushNamed(context, AppRoutes.videoLibraryScreen);

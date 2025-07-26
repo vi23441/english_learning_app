@@ -56,10 +56,13 @@ class TestProvider with ChangeNotifier {
   Future<void> loadTests() async {
     _setLoading(true);
     try {
+      print('TestProvider: Starting to load tests...');
       _tests = await _testService.getTests();
+      print('TestProvider: Loaded ${_tests.length} tests');
       _filteredTests = List.from(_tests);
       _clearError();
     } catch (e) {
+      print('TestProvider: Error loading tests: $e');
       _setError('Failed to load tests: ${e.toString()}');
     } finally {
       _setLoading(false);

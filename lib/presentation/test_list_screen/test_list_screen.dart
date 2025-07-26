@@ -6,6 +6,7 @@ import '../../core/app_export.dart';
 import '../../providers/test_provider.dart';
 import '../../models/test.dart';
 import '../../routes/app_routes.dart';
+import '../../services/test_data_seeder.dart';
 
 class TestListScreen extends StatefulWidget {
   const TestListScreen({Key? key}) : super(key: key);
@@ -97,6 +98,15 @@ class _TestListScreenState extends State<TestListScreen> {
                   Text(
                     'Check back later for new tests',
                     style: GoogleFonts.inter(fontSize: 14, color: Colors.grey),
+                  ),
+                  SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final seeder = TestDataSeeder();
+                      await seeder.seedTestData();
+                      testProvider.loadTests();
+                    },
+                    child: Text('Create Sample Tests'),
                   ),
                 ],
               ),

@@ -18,6 +18,7 @@ import '../presentation/admin/admin_questions_screen.dart';
 import '../presentation/admin/admin_feedbacks_screen.dart';
 import '../presentation/admin/admin_statistics_screen.dart';
 import '../presentation/test_history_screen/test_history_screen.dart';
+import '../presentation/test_list_screen/test_list_screen.dart';
 
 import '../presentation/vocabulary_sets_screen/vocabulary_sets_screen.dart';
 import '../presentation/settings_screen/settings_screen.dart';
@@ -34,7 +35,7 @@ class AppRoutes {
   static const String videoPlayerScreen = '/video-player-screen';
   static const String vocabularySetsScreen = '/vocabulary-sets-screen'; // New route
   static const String flashcardSetDetailScreen = '/flashcard-set-detail-screen';
-  // static const String testListScreen = '/test-list-screen';
+  static const String testListScreen = '/test-list-screen';
   static const String testTakingScreen = '/test-taking-screen';
   static const String testResultsScreen = '/test-results-screen';
   static const String testHistoryScreen = '/test-history-screen';
@@ -66,7 +67,7 @@ class AppRoutes {
       final String setId = ModalRoute.of(context)?.settings.arguments as String? ?? 'dummy_set_id';
       return FlashcardSetDetailScreen(setId: setId);
     },
-    // testListScreen: (context) => TestListScreen(),
+    testListScreen: (context) => const TestListScreen(),
     testTakingScreen: (context) => const TestTakingScreen(),
     testResultsScreen: (context) => const TestResultsScreen(),
     testHistoryScreen: (context) => const TestHistoryScreen(),
